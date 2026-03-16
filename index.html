@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0A0C12" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Content Radar — Pulse</title>
+
+  <!-- Google Fonts: Space Grotesk, Inter, JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ============================================================
+       APP SHELL
+  ============================================================ -->
+
+  <!-- Top bar: logo + date ribbon -->
+  <header id="header">
+    <div id="logo">
+      <span class="logo-dot"></span>
+      <span class="logo-text">Content Radar</span>
+      <button id="theme-toggle" aria-label="Switch to light mode" title="Toggle light/dark mode">☀️</button>
+    </div>
+    <!-- Horizontally scrollable date pills -->
+    <nav id="date-ribbon" aria-label="Date navigation">
+      <!-- Pills injected by JS -->
+    </nav>
+  </header>
+
+  <!-- Pull-to-refresh radar line -->
+  <div id="radar-line" aria-hidden="true"></div>
+
+  <!-- Main content area -->
+  <main id="main">
+
+    <!-- Stats bar: "176 items from 5 sources · Mar 15" -->
+    <div id="stats-bar" aria-live="polite"></div>
+
+    <!-- Feed container — tiles injected here -->
+    <div id="feed" role="list" aria-label="News feed"></div>
+
+    <!-- Empty / loading states -->
+    <div id="feed-status" aria-live="assertive"></div>
+
+  </main>
+
+  <!-- ============================================================
+       BOTTOM DOCK (mobile) / LEFT SIDEBAR (desktop ≥768px)
+  ============================================================ -->
+  <nav id="section-nav" aria-label="Section navigation">
+    <button class="nav-btn" data-section="hackernews"  aria-label="Hacker News">🔥<span class="nav-label">HN</span></button>
+    <button class="nav-btn" data-section="github"      aria-label="GitHub">⭐<span class="nav-label">GitHub</span></button>
+    <button class="nav-btn" data-section="rss"         aria-label="RSS / Blogs">📰<span class="nav-label">RSS</span></button>
+    <button class="nav-btn" data-section="reddit"      aria-label="Reddit">🗣️<span class="nav-label">Reddit</span></button>
+    <button class="nav-btn" data-section="newsletters" aria-label="Newsletters">📬<span class="nav-label">News</span></button>
+  </nav>
+
+  <script src="app.js"></script>
+</body>
+</html>
