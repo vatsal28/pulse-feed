@@ -171,6 +171,9 @@ async function fetchJSON(url) {
 async function init() {
   setupPullToRefresh();
   setupNavButtons();
+  setupDockIndicator();
+  setupGyroParallax();
+  setupTouchRipple();
 
   window.addEventListener('hashchange', onHashChange);
 
@@ -270,6 +273,7 @@ function setupNavButtons() {
         state.rssSourceFilter = 'all'; // reset filter on section switch
         setHash(state.currentDate, section);
         updateNavButtons();
+        moveDockIndicator();
         renderSectionFeed(true);
       }
     });
@@ -284,6 +288,8 @@ function updateNavButtons() {
     btn.style.setProperty('--nav-active-color', NAV_COLORS[btn.dataset.section] || '#00FFB2');
     btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
   });
+  // Move dock indicator after updating active state
+  requestAnimationFrame(() => moveDockIndicator());
 }
 
 /* ================================================================
@@ -460,11 +466,17 @@ function createTile(item, sectionMeta, cascade, index) {
   tile.setAttribute('aria-label', item.title);
   tile.style.setProperty('--tile-color', sectionMeta.color);
 
-  // Cascade-in animation with staggered delay
+  // Staggered entrance animation (Upgrade 2 — works on all devices)
+  tile.classList.add('tile-enter');
+  tile.style.animationDelay = `${index * 50}ms`;
+  tile.addEventListener('animationend', () => {
+    tile.classList.remove('tile-enter');
+    tile.style.animationDelay = '';
+  }, { once: true });
+
+  // Legacy cascade-in for border-pulse compat (cascade flag used for border-pulse timing)
   if (cascade || state.isFirstLoad) {
-    tile.classList.add('cascade-in');
-    tile.style.animationDelay = `${index * 20}ms`;
-    tile.addEventListener('animationend', () => tile.classList.remove('cascade-in'), { once: true });
+    // border-pulse handles separately below
   }
 
   // Border pulse on first load
@@ -620,33 +632,77 @@ function dismissTile(tile) {
 }
 
 /* ================================================================
-   PULL TO REFRESH
+   PULL TO REFRESH (Upgrade 5: Radar Ping)
 ================================================================ */
 
 function setupPullToRefresh() {
+  // Only on touch devices
+  if (!('ontouchstart' in window)) return;
+
   let startY = 0;
   let pulling = false;
+  let pullIndicator = null;
   const PULL_THRESHOLD = 72;
+  const SHOW_THRESHOLD = 20;
+
+  function getPullIndicator() {
+    if (!pullIndicator) {
+      pullIndicator = document.createElement('div');
+      pullIndicator.className = 'pull-indicator';
+      pullIndicator.textContent = '↓';
+      document.body.appendChild(pullIndicator);
+    }
+    return pullIndicator;
+  }
 
   document.addEventListener('touchstart', (e) => {
-    // Only activate when scrolled to top
+    // Only activate when scrolled to very top
     if (window.scrollY === 0) {
       startY = e.touches[0].clientY;
       pulling = true;
     }
   }, { passive: true });
 
-  document.addEventListener('touchmove', () => {}, { passive: true }); // allow default scroll
+  document.addEventListener('touchmove', (e) => {
+    if (!pulling) return;
+    const dy = e.touches[0].clientY - startY;
+
+    if (dy > SHOW_THRESHOLD && window.scrollY === 0) {
+      const indicator = getPullIndicator();
+      indicator.classList.add('visible');
+      if (dy > PULL_THRESHOLD) {
+        indicator.classList.add('ready');
+        indicator.textContent = '↺';
+      } else {
+        indicator.classList.remove('ready');
+        indicator.textContent = '↓';
+      }
+    }
+  }, { passive: true });
 
   document.addEventListener('touchend', (e) => {
     if (!pulling) return;
     const dy = e.changedTouches[0].clientY - startY;
     pulling = false;
 
-    if (dy > PULL_THRESHOLD) {
+    // Hide indicator
+    if (pullIndicator) {
+      pullIndicator.classList.remove('visible', 'ready');
+      pullIndicator.textContent = '↓';
+    }
+
+    if (dy > PULL_THRESHOLD && window.scrollY === 0) {
+      spawnRadarPing();
       triggerRadarRefresh();
     }
   }, { passive: true });
+}
+
+function spawnRadarPing() {
+  const ping = document.createElement('div');
+  ping.className = 'radar-ping';
+  document.body.appendChild(ping);
+  ping.addEventListener('animationend', () => ping.remove(), { once: true });
 }
 
 function triggerRadarRefresh() {
@@ -801,10 +857,133 @@ function showSkeletonTiles(count = 7) {
 }
 
 /* ================================================================
+   UPGRADE 1: TOUCH RIPPLE EFFECT
+================================================================ */
+
+function setupTouchRipple() {
+  // Only activate on touch devices
+  if (!('ontouchstart' in window)) return;
+
+  dom.feed.addEventListener('touchstart', (e) => {
+    const tile = e.target.closest('.tile');
+    if (!tile) return;
+
+    const touch = e.touches[0];
+    const rect = tile.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height) * 2;
+    const x = touch.clientX - rect.left - size / 2;
+    const y = touch.clientY - rect.top - size / 2;
+
+    const ripple = document.createElement('span');
+    ripple.className = 'ripple';
+    ripple.style.cssText = `
+      width: ${size}px;
+      height: ${size}px;
+      left: ${x}px;
+      top: ${y}px;
+    `;
+    tile.appendChild(ripple);
+
+    ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
+  }, { passive: true });
+}
+
+/* ================================================================
+   UPGRADE 3: GYROSCOPE PARALLAX ON BACKGROUND ORBS
+================================================================ */
+
+function setupGyroParallax() {
+  if (!window.DeviceOrientationEvent || !('ontouchstart' in window)) return;
+
+  // Create the gyro orbs layer
+  const orbs = document.createElement('div');
+  orbs.id = 'gyro-orbs';
+  document.body.insertBefore(orbs, document.body.firstChild);
+
+  function startListening() {
+    window.addEventListener('deviceorientation', (e) => {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+      const x = ((e.gamma || 0) / 90) * 15; // ±15px
+      const y = ((e.beta  || 0) / 180) * 15;
+
+      requestAnimationFrame(() => {
+        orbs.style.setProperty('--tilt-x', `${x}px`);
+        orbs.style.setProperty('--tilt-y', `${y}px`);
+      });
+    }, { passive: true });
+  }
+
+  // iOS 13+ requires explicit permission
+  if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+    // Request permission on first user interaction
+    const requestOnce = () => {
+      DeviceOrientationEvent.requestPermission()
+        .then(permissionState => {
+          if (permissionState === 'granted') startListening();
+        })
+        .catch(() => {/* silently ignore denial */});
+      document.removeEventListener('touchstart', requestOnce);
+    };
+    document.addEventListener('touchstart', requestOnce, { once: true, passive: true });
+  } else {
+    startListening();
+  }
+}
+
+/* ================================================================
+   UPGRADE 4: SLIDING DOCK INDICATOR
+================================================================ */
+
+function setupDockIndicator() {
+  const indicator = document.createElement('div');
+  indicator.className = 'dock-indicator';
+  dom.sectionNav.style.position = 'fixed'; // ensure relative positioning context
+  dom.sectionNav.appendChild(indicator);
+
+  // Wait for layout then position
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => moveDockIndicator(false));
+  });
+}
+
+function moveDockIndicator(animate = true) {
+  const indicator = dom.sectionNav.querySelector('.dock-indicator');
+  if (!indicator) return;
+
+  const activeBtn = dom.sectionNav.querySelector('.nav-btn.active');
+  if (!activeBtn) return;
+
+  const navRect = dom.sectionNav.getBoundingClientRect();
+  const btnRect = activeBtn.getBoundingClientRect();
+
+  const btnWidth = btnRect.width;
+  const indicatorWidth = Math.min(btnWidth * 0.8, 80);
+  const x = btnRect.left - navRect.left + (btnWidth - indicatorWidth) / 2;
+
+  if (!animate) {
+    indicator.style.transition = 'none';
+  } else {
+    indicator.style.transition = '';
+  }
+
+  indicator.style.setProperty('--dock-indicator-x', `${x}px`);
+  indicator.style.setProperty('--dock-indicator-width', `${indicatorWidth}px`);
+  indicator.style.width = `${indicatorWidth}px`;
+  indicator.style.transform = `translateX(${x}px)`;
+  indicator.style.opacity = '1';
+}
+
+/* ================================================================
    KICK OFF
 ================================================================ */
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   init();
   initSpotlightEffect();
+
+  // Reposition dock indicator on resize (handles orientation changes too)
+  window.addEventListener('resize', () => {
+    requestAnimationFrame(() => moveDockIndicator(false));
+  });
 });
