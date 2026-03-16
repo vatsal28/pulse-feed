@@ -295,9 +295,9 @@ function updateNavButtons() {
  * direction: 'left' | 'right' | 'none'  (for slide animation)
  */
 async function loadDay(date, direction = 'none') {
-  showFeedStatus('<div class="loading">Loading</div>');
-  dom.feed.innerHTML = '';
+  showFeedStatus('');
   dom.statsBar.textContent = '';
+  showSkeletonTiles(7);
 
   setHash(date, state.currentSection, true);
   updateActivePill(date);
@@ -399,7 +399,7 @@ function renderSectionFeed(animate = false, direction = 'none') {
   // Render the source filter dropdown
   renderSourceFilter();
 
-  // Section switch: cascade-fade tiles out first
+  // Section switch: fade out then show skeletons while transitioning
   if (animate && dom.feed.children.length > 0) {
     const existing = Array.from(dom.feed.children);
     existing.forEach((tile, i) => {
@@ -407,7 +407,11 @@ function renderSectionFeed(animate = false, direction = 'none') {
       tile.style.opacity = '0';
       tile.style.transform = 'translateY(-8px)';
     });
-    setTimeout(() => buildTiles(items, sectionMeta, true, direction), existing.length * 20 + 150);
+    const fadeDelay = existing.length * 20 + 150;
+    setTimeout(() => {
+      showSkeletonTiles(6);
+      setTimeout(() => buildTiles(items, sectionMeta, true, direction), 200);
+    }, fadeDelay);
     return;
   }
 
@@ -754,9 +758,53 @@ function applyTheme(theme) {
 }
 
 /* ================================================================
+   UPGRADE 2: CURSOR-TRACKED SPOTLIGHT
+   Uses event delegation on #feed to handle dynamically created tiles.
+================================================================ */
+
+function initSpotlightEffect() {
+  // Only apply on non-touch devices
+  if (!window.matchMedia('(hover: hover)').matches) return;
+
+  dom.feed.addEventListener('mousemove', (e) => {
+    const tile = e.target.closest('.tile');
+    if (!tile) return;
+    const rect = tile.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    tile.style.setProperty('--mouse-x', `${x}%`);
+    tile.style.setProperty('--mouse-y', `${y}%`);
+  });
+}
+
+/* ================================================================
+   UPGRADE 3: SKELETON LOADERS
+================================================================ */
+
+function showSkeletonTiles(count = 7) {
+  dom.feed.innerHTML = '';
+  const fragment = document.createDocumentFragment();
+  for (let i = 0; i < count; i++) {
+    const s = document.createElement('div');
+    s.className = 'tile-skeleton';
+    s.innerHTML = `
+      <div class="skeleton-line skeleton-meta"></div>
+      <div class="skeleton-line skeleton-title"></div>
+      <div class="skeleton-line skeleton-title2"></div>
+      <div class="skeleton-line skeleton-body"></div>
+      <div class="skeleton-line skeleton-body short"></div>
+      <div class="skeleton-line skeleton-score"></div>
+    `;
+    fragment.appendChild(s);
+  }
+  dom.feed.appendChild(fragment);
+}
+
+/* ================================================================
    KICK OFF
 ================================================================ */
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   init();
+  initSpotlightEffect();
 });

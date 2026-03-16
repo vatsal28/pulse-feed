@@ -71,6 +71,56 @@ body {
   padding-bottom: calc(var(--dock-height) + var(--safe-bottom) + 8px);
 }
 
+/* ── Upgrade 1: Ambient Gradient Orbs ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 10% 20%, rgba(0, 255, 178, 0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 90% 80%, rgba(0, 180, 255, 0.05) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 60% at 50% 110%, rgba(120, 0, 255, 0.04) 0%, transparent 60%);
+  animation: orb-drift 20s ease-in-out infinite alternate;
+  pointer-events: none;
+  z-index: 0;
+  will-change: transform;
+}
+
+/* ── Upgrade 1: Noise Texture Overlay ── */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.03;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes orb-drift {
+  0%   { opacity: 1;   transform: scale(1); }
+  50%  { opacity: 0.8; transform: scale(1.05) translate(2%, 1%); }
+  100% { opacity: 1;   transform: scale(1.02) translate(-1%, 2%); }
+}
+
+/* Accessibility: disable animation for reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  body::before { animation: none; }
+}
+
+/* Light mode: greatly reduce orbs (they don't work on light backgrounds) */
+[data-theme="light"] body::before {
+  background:
+    radial-gradient(ellipse 60% 50% at 10% 20%, rgba(0, 204, 142, 0.03) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 90% 80%, rgba(0, 120, 180, 0.02) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 60% at 50% 110%, rgba(80, 0, 180, 0.02) 0%, transparent 60%);
+  animation: none;
+}
+
+[data-theme="light"] body::after {
+  opacity: 0.015;
+}
+
 /* ================================================================
    HEADER
 ================================================================ */
@@ -80,13 +130,19 @@ body {
   left: 0;
   right: 0;
   z-index: 100;
-  background: var(--bg);
+  background: rgba(10, 12, 18, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--divider);
   padding-top: var(--safe-top);
   display: flex;
   flex-direction: column;
   min-height: calc(var(--header-height) + var(--safe-top));
   height: auto;
+}
+
+[data-theme="light"] #header {
+  background: rgba(245, 246, 250, 0.9);
 }
 
 /* Logo row */
@@ -154,22 +210,41 @@ body {
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.03em;
-  padding: 4px 10px;
-  border: 1px solid var(--divider);
-  background: var(--surface);
+  padding: 5px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(17, 21, 32, 0.6);
   color: var(--text-secondary);
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition: all 0.15s ease;
   -webkit-tap-highlight-color: transparent;
-  border-radius: 2px;
+  border-radius: 20px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
-.day-pill:hover  { background: var(--surface-hover); color: var(--text-primary); }
+.day-pill:hover  {
+  background: rgba(26, 32, 53, 0.8);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--text-primary);
+}
 .day-pill.active {
-  background: rgba(0, 255, 178, 0.1);
+  background: rgba(0, 255, 178, 0.12);
   border-color: var(--accent-mint);
   color: var(--accent-mint);
   box-shadow: 0 0 8px rgba(0, 255, 178, 0.25);
+}
+
+[data-theme="light"] .day-pill {
+  background: rgba(255, 255, 255, 0.8);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+[data-theme="light"] .day-pill:hover {
+  background: rgba(240, 241, 245, 0.9);
+  border-color: rgba(0, 0, 0, 0.18);
+}
+[data-theme="light"] .day-pill.active {
+  background: rgba(0, 204, 142, 0.12);
+  border-color: var(--accent-mint);
 }
 /* "First open" pulse on active pill */
 .day-pill.active.pulse-once {
@@ -214,6 +289,8 @@ body {
   margin: 0 auto;
   padding: 0;
   width: 100%;
+  position: relative;
+  z-index: 2;
 }
 
 /* Stats bar */
@@ -239,18 +316,24 @@ body {
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.02em;
-  background: var(--surface);
+  background: rgba(17, 21, 32, 0.8);
   color: var(--text-primary);
-  border: 1px solid var(--divider);
-  border-radius: 2px;
-  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 8px 36px 8px 12px;
   appearance: none;
   -webkit-appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236B7A99'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
   cursor: pointer;
-  transition: border-color 0.15s;
+  transition: all 0.15s ease;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+#source-select:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  background-color: rgba(26, 32, 53, 0.9);
 }
 #source-select:focus {
   outline: none;
@@ -258,8 +341,20 @@ body {
   box-shadow: 0 0 0 1px var(--accent-mint);
 }
 #source-select option {
-  background: var(--surface);
+  background: #111520;
   color: var(--text-primary);
+}
+
+[data-theme="light"] #source-select {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+[data-theme="light"] #source-select:hover {
+  background: rgba(240, 241, 245, 0.95);
+  border-color: rgba(0, 0, 0, 0.18);
+}
+[data-theme="light"] #source-select option {
+  background: #FFFFFF;
 }
 
 /* Feed status (loading / empty) */
@@ -293,18 +388,40 @@ body {
 
 .tile {
   position: relative;
-  background: var(--surface);
-  border-bottom: 1px solid var(--divider);
+  background: rgba(17, 21, 32, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   border-left: 2px solid var(--tile-color, var(--divider));
   padding: 12px 16px 12px 14px;
   cursor: pointer;
   overflow: hidden;
   -webkit-tap-highlight-color: transparent;
-  transition: background 0.15s;
+  transition: all 0.2s ease;
   will-change: transform, opacity;
 }
-.tile:hover { background: var(--surface-hover); }
-.tile:active { background: var(--surface-hover); }
+
+.tile:hover {
+  background: rgba(26, 32, 53, 0.9);
+  border-color: rgba(0, 255, 178, 0.25);
+  box-shadow: 0 0 20px rgba(0, 255, 178, 0.05);
+  transform: translateY(-1px);
+}
+
+.tile:active {
+  background: rgba(26, 32, 53, 0.9);
+}
+
+[data-theme="light"] .tile {
+  background: rgba(255, 255, 255, 0.85);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .tile:hover {
+  background: rgba(240, 241, 245, 0.95);
+  border-color: rgba(0, 204, 142, 0.3);
+  box-shadow: 0 0 20px rgba(0, 204, 142, 0.08);
+}
 
 /* Left border pulse on first load */
 .tile.border-pulse {
@@ -313,6 +430,15 @@ body {
 @keyframes border-glow {
   0%   { box-shadow: -3px 0 10px var(--tile-color); }
   100% { box-shadow: none; }
+}
+
+/* Tile content sits above the ::before spotlight (z-index 0) */
+.tile-meta,
+.tile-title,
+.tile-summary,
+.tile-footer {
+  position: relative;
+  z-index: 2;
 }
 
 /* Tile header row: source tag + timestamp */
@@ -327,7 +453,7 @@ body {
   font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 500;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--tile-color, var(--text-secondary));
   opacity: 0.85;
@@ -336,6 +462,8 @@ body {
 .tile-time {
   font-family: var(--font-mono);
   font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--text-secondary);
   opacity: 0.6;
   margin-left: auto;
@@ -353,25 +481,29 @@ body {
 .tile-title {
   font-family: var(--font-headline);
   font-size: var(--headline-standard);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-primary);
   line-height: 1.35;
   margin-bottom: 5px;
-  letter-spacing: 0.01em;
+  letter-spacing: -0.01em;
 }
 
 /* Blurb / summary */
 .tile-summary {
   font-family: var(--font-body);
   font-size: 14px;
-  color: var(--text-secondary);
-  line-height: 1.5;
+  color: #8B93A8;
+  line-height: 1.55;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
   margin-bottom: 8px;
+}
+
+[data-theme="light"] .tile-summary {
+  color: #5A6380;
 }
 
 /* Footer row: score + language */
@@ -398,10 +530,99 @@ body {
   opacity: 0.6;
 }
 
+/* ── Upgrade 2: Cursor-Tracked Spotlight ── */
+/* Swipe ripple uses ::after; spotlight uses ::before */
+.tile::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(0, 255, 178, 0.06),
+    transparent 40%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.tile:hover::before {
+  opacity: 1;
+}
+
+/* Light mode spotlight uses slightly darker accent */
+[data-theme="light"] .tile::before {
+  background: radial-gradient(
+    600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(0, 204, 142, 0.08),
+    transparent 40%
+  );
+}
+
+/* Mobile: simple active glow instead of cursor tracking */
+@media (hover: none) {
+  .tile:active {
+    border-color: rgba(0, 255, 178, 0.3) !important;
+    box-shadow: 0 0 16px rgba(0, 255, 178, 0.08);
+  }
+  .tile::before { display: none; }
+}
+
+/* ── Upgrade 3: Skeleton Loaders ── */
+.tile-skeleton {
+  padding: 12px 16px 12px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-left: 2px solid rgba(255, 255, 255, 0.08);
+  background: rgba(17, 21, 32, 0.8);
+  overflow: hidden;
+  position: relative;
+}
+
+.skeleton-line {
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 0%,
+    rgba(0, 255, 178, 0.07) 50%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+  margin-bottom: 8px;
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+.skeleton-meta   { height: 10px; width: 30%; margin-bottom: 8px; }
+.skeleton-title  { height: 16px; width: 85%; margin-bottom: 6px; }
+.skeleton-title2 { height: 16px; width: 60%; margin-bottom: 8px; }
+.skeleton-body   { height: 12px; width: 100%; margin-bottom: 4px; }
+.skeleton-body.short { width: 70%; }
+.skeleton-score  { height: 10px; width: 20%; margin-top: 4px; margin-left: auto; }
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-line { animation: none; }
+}
+
+[data-theme="light"] .skeleton-line {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.05) 0%,
+    rgba(0, 204, 142, 0.08) 50%,
+    rgba(0, 0, 0, 0.05) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+
 /* ── Swipe Gestures ── */
 
 /* Ripple from left on swipe-right (save) */
-.tile::before {
+.tile::after {
   content: '';
   position: absolute;
   top: 0; left: 0; bottom: 0;
@@ -409,8 +630,9 @@ body {
   background: linear-gradient(90deg, rgba(0, 255, 178, 0.18), transparent);
   pointer-events: none;
   transition: width 0.3s ease-out;
+  z-index: 1;
 }
-.tile.swipe-save::before { width: 100%; }
+.tile.swipe-save::after { width: 100%; }
 
 /* Swipe-left → desaturate + collapse */
 .tile.swipe-dismiss {
@@ -457,13 +679,18 @@ body {
   z-index: 100;
   height: calc(var(--dock-height) + var(--safe-bottom));
   padding-bottom: var(--safe-bottom);
-  background: color-mix(in srgb, var(--bg) 92%, transparent);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-top: 1px solid var(--divider);
+  background: rgba(17, 21, 32, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
   align-items: center;
   justify-content: space-around;
+}
+
+[data-theme="light"] #section-nav {
+  background: rgba(245, 246, 250, 0.9);
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .nav-btn {
@@ -479,11 +706,13 @@ body {
   cursor: pointer;
   font-size: 20px;
   opacity: 0.35;
-  transition: opacity 0.15s, filter 0.15s;
+  transition: all 0.15s ease;
   -webkit-tap-highlight-color: transparent;
   padding-bottom: 4px;
   position: relative;
+  border-radius: 8px;
 }
+.nav-btn:hover { opacity: 0.65; }
 .nav-btn:active { opacity: 0.6; }
 
 .nav-label {
@@ -497,21 +726,24 @@ body {
 /* Active glow indicator dot above icon */
 .nav-btn.active {
   opacity: 1;
+  background: rgba(255, 255, 255, 0.04);
 }
 .nav-btn.active .nav-label {
   color: var(--nav-active-color, var(--accent-mint));
 }
+/* Note: active::after is the dot indicator; active::before is used for spotlight on tiles */
 .nav-btn.active::after {
   content: '';
   position: absolute;
-  bottom: 4px;
+  bottom: 6px;
   left: 50%;
   transform: translateX(-50%);
   width: 4px;
   height: 4px;
   border-radius: 50%;
   background: var(--nav-active-color, var(--accent-mint));
-  box-shadow: 0 0 6px var(--nav-active-color, var(--accent-mint));
+  box-shadow: 0 0 8px var(--nav-active-color, var(--accent-mint));
+  transition: all 0.15s ease;
 }
 
 /* ── Desktop: wider content, keep horizontal dock ── */
@@ -525,7 +757,8 @@ body {
   }
 
   .tile {
-    border-radius: 2px;
+    border-radius: 8px;
+    margin-bottom: 2px;
   }
 }
 
