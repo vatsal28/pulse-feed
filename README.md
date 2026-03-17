@@ -1,31 +1,41 @@
-# Pulse Feed
+# Pulse Feed 📡
 
-A personal content radar — a daily-updated SPA that aggregates tech content from Hacker News, GitHub Trending, Reddit, RSS feeds, and newsletters into a clean, mobile-friendly feed.
+My personal tech content radar. An automated pipeline scrapes Hacker News, GitHub Trending, Reddit, RSS feeds, and newsletters every morning, then pushes the results here as static JSON. A vanilla JS frontend reads those files and renders them into a browsable, mobile-friendly feed.
 
-**Live site:** https://vatsal28.github.io/pulse-feed/
+No backend. No API. No framework. Just static files on GitHub Pages.
 
-## What it is
+**Live:** https://vatsal28.github.io/pulse-feed/
 
-Pulse is a read-only news aggregator built as a static GitHub Pages site. Content is fetched daily by an automated pipeline and pushed as JSON files. The SPA reads these files directly — no backend, no API, just static files.
+## How it works
+
+1. An n8n pipeline runs daily at 8 AM UTC
+2. It pulls content from ~20 sources, normalizes everything into a single JSON format
+3. The JSON gets pushed to this repo
+4. GitHub Pages serves the SPA, which reads the JSON client-side
+5. Old data rolls off after 7 days
 
 ## Stack
 
-- Vanilla JS SPA (no framework, no build step)
-- CSS with CSS variables for theming
-- GitHub Pages for hosting
-- JSON data files updated daily via automated push
+- Vanilla JS (zero dependencies, zero build step)
+- CSS variables for dark/light theming
+- GitHub Pages hosting
+- Data pipeline: n8n + scheduled push scripts
 
-## Data
+## Data format
 
-- `index.json` — manifest of available dates and item counts
-- `raw-feed-YYYY-MM-DD.json` — daily feed data (last 7 days retained)
+- `index.json` lists available dates and item counts
+- `data/raw-feed-YYYY-MM-DD.json` contains each day's content (last 7 days)
 
 ## Sources
 
-| Section | Sources |
-|---------|---------|
-| Hacker News | HN Top Stories API |
-| GitHub | GitHub Trending (unofficial) |
+| Section | What gets pulled |
+|---------|-----------------|
+| Hacker News | Top 50 stories (score > 50) |
+| GitHub | Trending repos across languages |
 | Reddit | r/MachineLearning, r/LocalLLaMA, r/programming, r/technology, r/artificial |
-| RSS | TechCrunch, ArXiv, Inc42, Techmeme, HuggingFace Blog, OpenAI, Google Blog, DeepMind |
-| Newsletters | Rundown AI |
+| RSS | TechCrunch, ArXiv, Inc42, Techmeme, HuggingFace, OpenAI, Google AI, DeepMind |
+| Newsletters | Rundown AI (via RSS) |
+
+## Built by
+
+[@cryptikcell](https://x.com/cryptikcell)
