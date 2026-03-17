@@ -309,7 +309,7 @@ async function loadDay(date, direction = 'none') {
   updateActivePill(date);
 
   try {
-    const data = await fetchJSON(`raw-feed-${date}.json`);
+    const data = await fetchJSON(`data/raw-feed-${date}.json`);
     state.feedData   = data;
     state.allItems   = data.items || [];
     state.currentDate = date;
