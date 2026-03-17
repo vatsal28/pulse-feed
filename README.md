@@ -1,6 +1,6 @@
 # Pulse Feed 📡
 
-My personal tech content radar. An automated pipeline scrapes Hacker News, GitHub Trending, Reddit, RSS feeds, and newsletters every morning, then pushes the results here as static JSON. A vanilla JS frontend reads those files and renders them into a browsable, mobile-friendly feed.
+My personal tech pulse. An automated pipeline scrapes Hacker News, GitHub Trending, Reddit, RSS feeds, and newsletters every morning, then pushes the results here as static JSON. A vanilla JS frontend reads those files and renders them into a browsable, mobile-friendly feed.
 
 No backend. No API. No framework. Just static files on GitHub Pages.
 

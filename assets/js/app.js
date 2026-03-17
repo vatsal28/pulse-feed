@@ -1,5 +1,5 @@
 /**
- * Content Radar — Pulse SPA
+ * The Pulse SPA
  * Vanilla JS, no framework, no build step.
  * Hash routing: /#/YYYY-MM-DD  +  optional  /#/YYYY-MM-DD/section
  */
