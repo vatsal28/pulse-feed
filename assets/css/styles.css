@@ -945,6 +945,154 @@ body::after {
 }
 
 /* ================================================================
+   READ STATE — Tile visual treatment
+================================================================ */
+
+/* Dimmed tile for read items */
+.tile--read {
+  opacity: 0.42;
+  transition: opacity 0.25s ease;
+}
+.tile--read:hover {
+  opacity: 0.75;
+}
+/* Strikethrough on title for read tiles */
+.tile--read .tile-title {
+  text-decoration: line-through;
+  text-decoration-color: rgba(255, 255, 255, 0.35);
+  text-decoration-thickness: 1px;
+}
+[data-theme="light"] .tile--read .tile-title {
+  text-decoration-color: rgba(0, 0, 0, 0.3);
+}
+
+/* ── Read button (✓) inside tile-meta ── */
+.tile-read-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  min-width: 44px; /* mobile tap target padding accounted via negative margin */
+  min-height: 44px;
+  margin: -8px -4px -8px auto; /* push to right, absorb tile padding */
+  padding: 0;
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
+}
+/* Always visible on touch devices */
+@media (hover: none) {
+  .tile-read-btn {
+    opacity: 0.35;
+  }
+}
+/* Show on hover/focus on pointer devices */
+.tile:hover .tile-read-btn,
+.tile-read-btn:focus-visible {
+  opacity: 1;
+}
+/* Already-read state — always visible */
+.tile-read-btn--read {
+  opacity: 1 !important;
+  color: var(--accent-mint);
+  border-color: var(--accent-mint);
+  background: rgba(0, 255, 178, 0.1);
+}
+.tile-read-btn:hover {
+  color: var(--accent-mint);
+  border-color: rgba(0, 255, 178, 0.5);
+  background: rgba(0, 255, 178, 0.08);
+}
+[data-theme="light"] .tile-read-btn {
+  border-color: rgba(0, 0, 0, 0.12);
+}
+[data-theme="light"] .tile-read-btn--read {
+  color: var(--accent-mint);
+  border-color: var(--accent-mint);
+  background: rgba(0, 204, 142, 0.1);
+}
+
+/* ================================================================
+   READ CONTROLS BAR
+================================================================ */
+
+#read-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--divider);
+  flex-wrap: wrap;
+}
+
+.read-badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  letter-spacing: 0.04em;
+  flex: 1;
+  white-space: nowrap;
+}
+
+.read-ctrl-btn {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  padding: 0 12px;
+  height: 30px;
+  min-width: 44px;
+  background: rgba(17, 21, 32, 0.8);
+  color: var(--text-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.read-ctrl-btn:hover:not(:disabled) {
+  background: rgba(26, 32, 53, 0.9);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--text-primary);
+}
+.read-ctrl-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.read-ctrl-btn--primary {
+  color: var(--accent-mint);
+  border-color: rgba(0, 255, 178, 0.25);
+}
+.read-ctrl-btn--primary:hover:not(:disabled) {
+  background: rgba(0, 255, 178, 0.08);
+  border-color: rgba(0, 255, 178, 0.5);
+  color: var(--accent-mint);
+}
+
+[data-theme="light"] .read-ctrl-btn {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+[data-theme="light"] .read-ctrl-btn:hover:not(:disabled) {
+  background: rgba(240, 241, 245, 0.95);
+  border-color: rgba(0, 0, 0, 0.18);
+  color: var(--text-primary);
+}
+[data-theme="light"] .read-ctrl-btn--primary {
+  color: var(--accent-mint);
+  border-color: rgba(0, 204, 142, 0.3);
+}
+
+/* ================================================================
    TUTORIAL BADGE
 ================================================================ */
 .tile-tutorial-badge {

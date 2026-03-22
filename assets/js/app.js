@@ -47,6 +47,8 @@ const state = {
   isFirstLoad:    true,
   prevDate:       null,   // for slide direction detection
   rssSourceFilter: 'all', // 'all' or specific source like 'techcrunch'
+  readItems:      new Set(), // set of item IDs marked as read (per-date localStorage)
+  hideRead:       false,  // toggle show/hide read items
 };
 
 /** Readable source names for RSS filter dropdown */
@@ -83,6 +85,58 @@ const dom = {
   radarLine:   $('radar-line'),
   sectionNav:  $('section-nav'),
 };
+
+/* ================================================================
+   READ STATE (localStorage, per-date key)
+================================================================ */
+
+function readStorageKey(date) {
+  return `pulse-read-${date || state.currentDate}`;
+}
+
+function loadReadState(date) {
+  try {
+    const raw = localStorage.getItem(readStorageKey(date));
+    state.readItems = raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch {
+    state.readItems = new Set();
+  }
+}
+
+function saveReadState() {
+  try {
+    localStorage.setItem(readStorageKey(), JSON.stringify([...state.readItems]));
+  } catch { /* storage full — fail silently */ }
+}
+
+/** Stable unique ID for an item: prefer URL, fall back to title+date combo */
+function itemId(item) {
+  return item.url || `${item.title}__${item.published_at || item.scraped_at || ''}`;
+}
+
+function isRead(item) {
+  return state.readItems.has(itemId(item));
+}
+
+function toggleRead(item) {
+  const id = itemId(item);
+  if (state.readItems.has(id)) {
+    state.readItems.delete(id);
+  } else {
+    state.readItems.add(id);
+  }
+  saveReadState();
+}
+
+function markAllRead(items) {
+  items.forEach(item => state.readItems.add(itemId(item)));
+  saveReadState();
+}
+
+function clearAllRead() {
+  state.readItems.clear();
+  saveReadState();
+}
 
 /* ================================================================
    UTILS
@@ -271,6 +325,7 @@ function setupNavButtons() {
       if (section !== state.currentSection) {
         state.currentSection = section;
         state.rssSourceFilter = 'all'; // reset filter on section switch
+        state.hideRead = false; // reset hide-read toggle on section switch
         setHash(state.currentDate, section);
         updateNavButtons();
         moveDockIndicator();
@@ -313,6 +368,7 @@ async function loadDay(date, direction = 'none') {
     state.feedData   = data;
     state.allItems   = data.items || [];
     state.currentDate = date;
+    loadReadState(date);
 
     // Stats bar
     const sourcesCount = Object.keys(data.stats?.by_source || {}).length;
@@ -424,8 +480,69 @@ function renderSectionFeed(animate = false, direction = 'none') {
   buildTiles(items, sectionMeta, animate, direction);
 }
 
+/** Render the "Mark all read" + "Hide/show read" control bar */
+function renderReadControls(items) {
+  // Remove existing bar
+  const existing = document.getElementById('read-controls');
+  if (existing) existing.remove();
+
+  if (!items || items.length === 0) return;
+
+  const readCount = items.filter(isRead).length;
+  const totalCount = items.length;
+
+  const bar = document.createElement('div');
+  bar.id = 'read-controls';
+
+  // Badge
+  const badge = document.createElement('span');
+  badge.id = 'read-badge';
+  badge.className = 'read-badge';
+  badge.textContent = `${readCount}/${totalCount} read`;
+
+  // Hide/show toggle
+  const hideBtn = document.createElement('button');
+  hideBtn.id = 'hide-read-btn';
+  hideBtn.className = 'read-ctrl-btn';
+  if (readCount === 0) {
+    hideBtn.disabled = true;
+    hideBtn.textContent = 'Hide read';
+  } else {
+    hideBtn.textContent = state.hideRead ? `Show read (${readCount})` : `Hide read (${readCount})`;
+  }
+  hideBtn.addEventListener('click', () => {
+    state.hideRead = !state.hideRead;
+    buildTiles(state.visibleItems, SECTIONS[state.currentSection], false, 'none');
+  });
+
+  // Mark all read
+  const markAllBtn = document.createElement('button');
+  markAllBtn.id = 'mark-all-btn';
+  markAllBtn.className = 'read-ctrl-btn read-ctrl-btn--primary';
+  const allRead = readCount === totalCount;
+  markAllBtn.textContent = allRead ? 'Unmark all' : 'Mark all read';
+  markAllBtn.addEventListener('click', () => {
+    if (allRead) {
+      clearAllRead();
+    } else {
+      markAllRead(items);
+    }
+    buildTiles(state.visibleItems, SECTIONS[state.currentSection], false, 'none');
+  });
+
+  bar.appendChild(badge);
+  bar.appendChild(hideBtn);
+  bar.appendChild(markAllBtn);
+
+  // Insert before #feed
+  dom.feed.parentNode.insertBefore(bar, dom.feed);
+}
+
 function buildTiles(items, sectionMeta, cascade, direction) {
   dom.feed.innerHTML = '';
+
+  // Render read controls bar
+  renderReadControls(items);
 
   // Slide animation class for date switch
   if (direction === 'left') {
@@ -445,8 +562,29 @@ function buildTiles(items, sectionMeta, cascade, direction) {
     return;
   }
 
+  // Separate unread and read items; hide read if toggle active
+  const unread = items.filter(item => !isRead(item));
+  const read   = items.filter(item => isRead(item));
+
+  // Display order: unread first, then read (dimmed) at bottom
+  let displayItems;
+  if (state.hideRead) {
+    displayItems = unread;
+  } else {
+    displayItems = [...unread, ...read];
+  }
+
+  if (displayItems.length === 0) {
+    dom.feed.innerHTML = `
+      <div class="state-empty">
+        <h2>All caught up! ✓</h2>
+        <p>All items are read. Toggle "Show read" to see them.</p>
+      </div>`;
+    return;
+  }
+
   const fragment = document.createDocumentFragment();
-  items.forEach((item, index) => {
+  displayItems.forEach((item, index) => {
     const tile = createTile(item, sectionMeta, cascade, index);
     fragment.appendChild(tile);
   });
@@ -462,6 +600,7 @@ function buildTiles(items, sectionMeta, cascade, direction) {
 function createTile(item, sectionMeta, cascade, index) {
   const tile = document.createElement('article');
   tile.className = 'tile';
+  if (isRead(item)) tile.classList.add('tile--read');
   tile.setAttribute('role', 'listitem');
   tile.setAttribute('aria-label', item.title);
   tile.style.setProperty('--tile-color', sectionMeta.color);
@@ -508,12 +647,16 @@ function createTile(item, sectionMeta, cascade, index) {
     ? `<span class="tile-tutorial-badge">📚 Tutorial</span>`
     : '';
 
+  const readState = isRead(item);
+  const readBtnLabel = readState ? 'Mark unread' : 'Mark as read';
+
   tile.innerHTML = `
     <div class="tile-meta">
       <span class="tile-source">${escHtml(sourceLabel.toUpperCase())}</span>
       ${tutorialBadge}
       ${item.subreddit ? '' : ''}
       <span class="tile-time">${escHtml(timeDisplay)}</span>
+      <button class="tile-read-btn${readState ? ' tile-read-btn--read' : ''}" aria-label="${readBtnLabel}" title="${readBtnLabel}">✓</button>
     </div>
     <h2 class="tile-title">${escHtml(item.title)}</h2>
     ${summaryHtml}
@@ -523,11 +666,45 @@ function createTile(item, sectionMeta, cascade, index) {
     </div>
   `;
 
+  // Read button click (stop propagation so it doesn't open URL)
+  const readBtn = tile.querySelector('.tile-read-btn');
+  readBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleRead(item);
+    // Rebuild the feed to reflect new read state (controls bar + ordering)
+    buildTiles(state.visibleItems, SECTIONS[state.currentSection], false, 'none');
+  });
+
   // Click → open URL
   tile.addEventListener('click', (e) => {
     // Don't open if user was swiping
     if (tile._wasSwiping) { tile._wasSwiping = false; return; }
     if (item.url) {
+      // Mark as read on click
+      if (!isRead(item)) {
+        toggleRead(item);
+        // Update this tile's read state visually without full rebuild
+        tile.classList.add('tile--read');
+        const btn = tile.querySelector('.tile-read-btn');
+        if (btn) btn.classList.add('tile-read-btn--read');
+        // Update the controls bar badge quietly
+        const badge = document.getElementById('read-badge');
+        const hideBtn = document.getElementById('hide-read-btn');
+        const markAllBtn = document.getElementById('mark-all-btn');
+        if (badge) {
+          const readCount = state.visibleItems.filter(isRead).length;
+          badge.textContent = `${readCount}/${state.visibleItems.length} read`;
+        }
+        if (hideBtn && !hideBtn.disabled) {
+          const readCount = state.visibleItems.filter(isRead).length;
+          hideBtn.textContent = state.hideRead ? `Show read (${readCount})` : `Hide read (${readCount})`;
+        }
+        if (markAllBtn) {
+          const readCount = state.visibleItems.filter(isRead).length;
+          const allRead = readCount === state.visibleItems.length;
+          markAllBtn.textContent = allRead ? 'Unmark all' : 'Mark all read';
+        }
+      }
       window.open(item.url, '_blank', 'noopener,noreferrer');
     }
   });
