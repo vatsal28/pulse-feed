@@ -1152,26 +1152,12 @@ function moveDockIndicator(animate = true) {
 }
 
 /* ================================================================
-   PWA
-================================================================ */
-
-function registerServiceWorker() {
-  if (!('serviceWorker' in navigator)) return;
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch((err) => {
-      console.warn('Service worker registration failed:', err);
-    });
-  });
-}
-
-/* ================================================================
    KICK OFF
 ================================================================ */
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   init();
   initSpotlightEffect();
-  registerServiceWorker();
 
   // Reposition dock indicator on resize (handles orientation changes too)
   window.addEventListener('resize', () => {
