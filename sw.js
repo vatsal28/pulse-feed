@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'pulse-v1';
+const CACHE_VERSION = 'pulse-v2';
 const APP_SHELL_CACHE = `pulse-app-shell-${CACHE_VERSION}`;
 const DATA_CACHE = `pulse-data-${CACHE_VERSION}`;
 

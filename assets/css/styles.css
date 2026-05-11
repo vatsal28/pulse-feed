@@ -293,6 +293,26 @@ body::after {
   z-index: 2;
 }
 
+#parking-banner {
+  margin: 12px 16px 8px;
+  padding: 12px 14px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-primary);
+  background: linear-gradient(135deg, rgba(255, 209, 102, 0.14), rgba(255, 107, 53, 0.10));
+  border: 1px solid rgba(255, 209, 102, 0.42);
+  border-left: 3px solid var(--color-newsletters);
+  border-radius: 12px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+}
+
+[data-theme="light"] #parking-banner {
+  background: linear-gradient(135deg, rgba(255, 209, 102, 0.26), rgba(255, 107, 53, 0.12));
+  border-color: rgba(184, 125, 0, 0.32);
+  box-shadow: 0 8px 24px rgba(26, 29, 39, 0.08);
+}
+
 /* Stats bar */
 #stats-bar {
   font-family: var(--font-mono);
